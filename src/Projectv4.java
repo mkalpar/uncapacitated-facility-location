@@ -2,8 +2,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
@@ -45,7 +43,7 @@ public class Projectv4 {
 	// Cij
 	public static int[][] listDistanceFromClient;
 	
-	//Wij
+	// Wij
 	public static int[][] wij;
 	
 	// for user input
@@ -54,17 +52,22 @@ public class Projectv4 {
 	// for the while loop
 	public static boolean test;
 	
-	//store frozen values
+	// for storing frozen values of Vj and Wij 
 	public static List<Integer> listFrozenVj;	
 	public static int[][] arrayFrozenWij;
 	
-	//results
-	public static List<String> tentativelyOpenFacilities;
+	// initial results of tentatively open facilities
+	public static List<String> tentativelyOpenFacilities; //unique list of tent.openfacilities
+	public static List<Integer> listTentativeFacilityNo;
 	
+	// results after opening facilities from the set of tentatively open facilities
 	public static List<String> openFacilities;
 	
+	// connections after tentatively opening facilities, rows are facilities, columns are clients
 	public static int[][] connectedFacilityClient;
-
+	
+	// connections after actually opening facilities from maximal stable set
+	public static int[][] finalConnections;
 	
 	public static List<Integer> vjHigherThanCij;
 	public static List<Integer> listColumns;
@@ -72,7 +75,7 @@ public class Projectv4 {
 	public static int[] distinctArray;
 	
 	
-	//parses input
+	// for parsing the input
 	private static Network network;
 	public static int[][] arrayOfCij;
 	
@@ -89,10 +92,11 @@ public class Projectv4 {
 	public static void manualData()
 	{
 
-		//fixed cost fi
-		listFixedCost = new ArrayList<Integer>();
+		// Manually enter the data here
+		// Each element of the array is the Cij all clients pay for that facility
 		
-		//manually enter the data here
+		
+		// sample datas are commented
 		//String[] graphCij = new String[]{"4 5 2 1 0 0", "1 1 2 1 2 4", "1 2 5 1 3 3 ", "2 1 2 1 3 7"};
 		
 		//String[] graphCij = new String[]{"4 5 2 1 0 0", "1 2 1 3 1 1", "1 2 1 1 2 3", "2 1 2 1 3 7"};
@@ -102,15 +106,15 @@ public class Projectv4 {
 		//String[] graphCij = new String[]{"10 10 10 10 10 10", "1 2 1 3 1 0", "1 2 1 1 2 3", "1 2 1 1 2 4"};
 		
 		
-		//will open 3 facilities, with fixed cost at 6 
-		String[] graphCij = new String[]{"10 10 10 10 10 10", "1 2 1 3 1 0", "1 2 1 1 2 3", "1 1 2 3 1 1"};
-		
-		//get
+		//will tentatively open 3, actually open 1 facility, with fixed cost at 6 
 		//String[] graphCij = new String[]{"10 10 10 10 10 10", "1 2 1 3 1 0", "1 2 1 1 2 3", "1 1 2 3 1 1"};
 		
-		//9 clients, 5 facilities, will open 1 facility, FIX IT, with fixed cost at 6 
-		//String[] graphCij = new String[]{"10 10 10 10 10 10 10 10 10", "1 2 1 3 1 0 1 1 1", "1 2 1 1 2 3 1 1 1", "1 1 2 3 1 1 1 1 1"
-		//		, "1 1 2 3 1 1 1 1 1"};
+		//will tentatively open 3, actually open 1 facility, with fixed cost at 6 
+		//String[] graphCij = new String[]{"10 10 10 10 10 10", "1 2 1 3 1 0", "1 2 1 1 2 3", "1 1 2 3 1 1"};
+		
+		//9 clients, 5 facilities, will tentatively open 2, actually open 1 facility, with fixed cost at 6 
+		String[] graphCij = new String[]{"10 10 10 10 10 10 10 10 10", "1 2 1 3 1 0 1 1 1", "1 2 1 1 2 3 1 1 1", "1 1 2 3 1 1 3 1 1"
+				, "1 1 2 3 1 1 1 1 1"};
 		
 		//will open 2 tentatively, and open 1 facility, fixed cost 6
 		//String[] graphCij = new String[]{"10 10 10 10 10 10 10 10 10", "1 2 1 3 1 4 1 2 1", "1 2 1 3 2 3 1 4 2", "1 1 2 3 3 1 5 1 1"
@@ -130,18 +134,21 @@ public class Projectv4 {
 		
 		networkData(graphCij);
 			
+		// Fixed cost fi
+		listFixedCost = new ArrayList<Integer>();
 		for ( int i = 0 ; i < numOfClients ; i ++ ) {
 			listFixedCost.add(6);
 		}
 		
 		
-		//states 
+		// States of facilities
 		stateTentative = "tentatively open";
 		stateOpen = "open state";
 		stateClosed = "closed state";
 		
 		
 		listFacilities = new ArrayList<String>();
+		
 		for (int i=0; i< numOfFacilities; i++){
 			listFacilities.add("f" + i);
 		}
@@ -156,12 +163,11 @@ public class Projectv4 {
 			
 		
 		
-		//amount the customer pays for being served, Vj 
+		// Amount the customer pays for being served, Vj 
 		costPaidByCustomer = new int[listClients.size()];
 
 		
-		// set all dual variables to zero: wij
-		// set initial Wij in a loop
+		// Set all dual variables to zero: Wij
 		// Wij = amount that j offers to contribute to the opening of facility i 
 		wij = new int[listFacilities.size()][listClients.size()];
 		
@@ -176,26 +182,14 @@ public class Projectv4 {
 		System.out.println("list cij print:");
 		listDistanceFromClient = new int[listFacilities.size()][listClients.size()];
 		listDistanceFromClient = arrayOfCij;
-		/*
-	    System.out.println("Cij:");
-		for(int i=0; i < numFacility ; i++){
-	    	
-	        for (int j = 0  ; j < numClient ; j++) {
-	        	//listDistanceFromClient[i][j] = row[i].
-	        	//System.out.println(listDistanceFromClient[i][j]);
-	        	System.out.println(listDistanceFromClient[i][j] );
-	        }
-	    }
-		*/
-	    
-	    
+	   
 	}
 	
-	public static void deployServer()
+	public static void deployAlgorithm()
 	{	
 		
-		// if the user input is yes, let the user enter data manually,
-		// if no, use the data input from the manualData method
+		// If the user input is yes, let the user enter data manually (this option isn't implemented yet)
+		// If no, use the data input from the manualData method
 		switch (answerScan)
 	    {
 	    
@@ -211,8 +205,8 @@ public class Projectv4 {
 	    }
 
 		
-		// initialize factory state
-		// all facilities are closed at first
+		// Initialize facility state
+		// All facilities are closed at first
 		int[] arrayFacilityState = new int[numOfFacilities];
 		for (int aa = 0 ; aa < listFacilities.size(); aa++) {
 			
@@ -220,41 +214,53 @@ public class Projectv4 {
 			
 		}	
 		
+		
 		tentativelyOpenFacilities = new ArrayList<String>();
+		listTentativeFacilityNo = new ArrayList<Integer>();
+		
 		connectedFacilityClient = new int[listFacilities.size()][listClients.size()];
 		openFacilities = new ArrayList<String>();
 		
-		// set all connections none first
+		// Set all connections to none first
 		for ( int i = 0 ; i < listFacilities.size(); i++) {
-			
 			for(int j = 0 ; j < listClients.size(); j++ ) {
-	
 				connectedFacilityClient[i][j] = clientNotConnected;			
 			}	
 		}
 		
-		// set the boolean variable test to true for the do-while loop to execute
-		// it will set to false when all customers are connected to at least one facility
+		// Set the boolean variable test to true for the do-while loop to execute
+		// It will set to false when all customers are connected to at least one facility
 		test = true;
 		
 		columns = new int[(listFacilities.size()-1)*(listClients.size()-1)];
 		distinctArray = new int[(listFacilities.size()-1)*(listClients.size()-1)];
-		
 		listColumns = new ArrayList<Integer>();
+		
+		// Event 2 requires the sum of all Wij for the facility
 		int[] sumOfWijForFacility = new int [listFacilities.size()];
+		
+		// List that stores all facilities that yields the condition Vj > Cij
 		vjHigherThanCij = new ArrayList<Integer>();
 		int[] vjHigherThanCijArray = new int [listClients.size()];
 		int[] distinctvjHigherThanCijArray = new int[listClients.size()];
-		int[] frozenVjs = new int[listClients.size()];
 		
+		// Storing frozen values 
 		listFrozenVj = new ArrayList<Integer>();
 		arrayFrozenWij = new int[listFacilities.size()][listClients.size()];
+		
+		
+		
+		// DO-WHILE LOOP STARTS HERE 
+		
+		// let t =0
 		startTime = 0;
-		
-		
+		 
 		do {
 			
-			System.out.println("Start time = " + startTime);
+			System.out.println("time = " + startTime);
+			
+			// With proceeding time t, all Vj are increased simultaneously
+			// i.e. they are all equal to t until they are frozen and then remain constant until the end
 			increaseVjIfNotFrozen();
 			
 			for (int i = 0 ; i < listFacilities.size() ; i++) {
@@ -264,29 +270,32 @@ public class Projectv4 {
 				
 				for(int j = 0 ; j < listClients.size() ; j++ ) {
 		
-					System.out.println("------ i , j: " + i + " , "+ j +" : " + listDistanceFromClient[i][j]);
+					System.out.println("==== i , j: " + i + " , " + j + " : " + listDistanceFromClient[i][j]);
 					System.out.println("v" + j + ":" + costPaidByCustomer[j] + " for facility" + i );
-					
-					
-					// EVENT Vj=Cij
-					if (costPaidByCustomer[j] == listDistanceFromClient[i][j]	) {
-						
-						System.out.println("event vj = cij ");
-						System.out.println("vj: " + costPaidByCustomer[j] + " cij: " + listDistanceFromClient[i][j]);
-						
-						// EVENT 1 : not tentatively open
+									
+					// EVENT TYPE 1 : Vj = Cij and facility i not tentatively open 
+					if (costPaidByCustomer[j] == listDistanceFromClient[i][j]) {
 						if(arrayFacilityState[i] != ftentative ) {
-							System.out.println("state: not tentatively open");
-							System.out.println("increase wij");
+							System.out.println("event vj = cij and state: not tentatively open");
+							System.out.println("vj: " + costPaidByCustomer[j] + " cij: " + listDistanceFromClient[i][j]);
+							System.out.println("---increase wij");
+							
 							//increasing wij after if not frozen check
-							increaseWijIfNotFrozen(i,j);				
-							System.out.println("amount client "+ j + " pays for the opening of facility i " + i + ": w" + i + j + "=="+ wij[i][j]);			
+							increaseWijIfNotFrozen(i,j);	
+							
+							System.out.println("the amount client " + j + " offers to pays for the opening of facility i " 
+																	+ i + ": w" + i + j + "=="+ wij[i][j]);			
 						}
-						
-						// EVENT 3: is already tentatively open
-						else if (arrayFacilityState[i] == ftentative ) {
-							System.out.println("state: tentatively open");
-							System.out.println("connect i to j");
+					}	
+					
+					
+					// EVENT TYPE 3: facility i is already tentatively open and Vj = Cij
+					if (costPaidByCustomer[j] == listDistanceFromClient[i][j]) {
+						if (arrayFacilityState[i] == ftentative ) {
+							
+							System.out.println("event vj = cij and state: tentatively open");
+							System.out.println("vj: " + costPaidByCustomer[j] + " cij: " + listDistanceFromClient[i][j]);
+							System.out.println("---connect i to j");
 							connectedFacilityClient[i][j] = clientConnected;
 							System.out.println("freezing v" + j + " at " + costPaidByCustomer[j]);
 							if (listFrozenVj.contains(j)) {
@@ -297,26 +306,38 @@ public class Projectv4 {
 							}
 							
 							System.out.println("connected facility " + i + " to client "+ j  + " :" + connectedFacilityClient[i][j] );
-						}
-							
-					}				
+						}		
+					}			
+					
+					
 					sumOfWijForFacility[i] = sumOfWijForFacility[i] + wij[i][j];
 					//System.out.println("sum of w" + i + "j : " + sumOfWijForFacility[i]);
 					
 				}
 				
 	
-				// EVENT 2
+				// EVENT TYPE 2 sum of Wij = fi , 
 				if (listFixedCost.get(i) == sumOfWijForFacility[i]) {
+					// Tentatively open facility i, 	
+					// For all connected customers with Vj > Cij, connect j to i
+					// Freeze Vj and all Wij
 					
-					System.out.println("event fi  = sum of wij for one facility");
+					
+					System.out.println("event fi  = sum of wij for facility" + i);
 					System.out.println(listFixedCost.get(i)  + " = " + sumOfWijForFacility[i]);
-					System.out.println("tentatively open facility " + listFacilities.get(i));
-					tentativelyOpenFacilities.add(listFacilities.get(i));
+					System.out.println("---tentatively open facility " + listFacilities.get(i));
+					String facilityNoToOpen = listFacilities.get(i).substring(1);
+					
+				
+					if (!tentativelyOpenFacilities.contains(facilityNoToOpen)) {
+							tentativelyOpenFacilities.add(facilityNoToOpen);
+							listTentativeFacilityNo.add(Integer.parseInt(facilityNoToOpen));
+					}
 					arrayFacilityState[i] = ftentative;
-					System.out.println("connect " 
+				
+					System.out.println("connect facility " 
 											+ listFacilities.get(i)
-											+ " to all UNCONNECTED clients that yield vj > cij "
+											+ " to all unconnected clients that yield vj > cij "
 											+ " and at sum w" + i + "j= "
 											+ sumOfWijForFacility[i]);
 					
@@ -328,31 +349,31 @@ public class Projectv4 {
 						}
 					}
 					
+					
 					vjHigherThanCijArray = vjHigherThanCij.stream().mapToInt(Integer::intValue).toArray();
 					System.out.println("print all customers that yield vj > cij " + Arrays.toString(vjHigherThanCijArray));
 					distinctvjHigherThanCijArray = Arrays.stream(vjHigherThanCijArray).sorted().distinct().toArray();
 					
-					/*
-					 System.out.println("clients whose vj > cij for facility i " + i + " : ");
 					
-					for (int dd = 0 ; dd < distinctvjHigherThanCijArray.length ; dd++ ) {		
-						System.out.println(distinctvjHigherThanCijArray[dd]);
-					}
-					 */
-					
-					
-					//connect clients who yield vj > cij to the facility after tentatively opening it
+					// Connect clients who yield vj > cij to the facility after tentatively opening facility
 					for (int index = 0 ; index < distinctvjHigherThanCijArray.length ; index++) {
-									
-						connectedFacilityClient[i][distinctvjHigherThanCijArray[index]] = clientConnected;
 						
-						//add connected clients to the listColumns array so that we can check if all customers are connected at the end of the loop
-						//listColumns.add(distinctvjHigherThanCijArray[index]);
+						
+						// Connect unconnected customers to facility 
+						if (connectedFacilityClient[i][distinctvjHigherThanCijArray[index]] == clientNotConnected) {
+							connectedFacilityClient[i][distinctvjHigherThanCijArray[index]] = clientConnected;
+						}
+						
+						else if (connectedFacilityClient[i][distinctvjHigherThanCijArray[index]] == clientConnected) {
+							System.out.println("client already connected to a facility");
+						}
+						
+						
 						System.out.println("connectedFacilityClient state for facility" 
 												+ i + " for client"  
 												+ distinctvjHigherThanCijArray[index] + " = "
 												+ connectedFacilityClient[i][distinctvjHigherThanCijArray[index]]);
-						//freeze vj
+						// Freeze vj
 						if (listFrozenVj.contains(distinctvjHigherThanCijArray[index])) {
 							System.out.println("v" + distinctvjHigherThanCijArray[index] + "is already frozen");
 						}
@@ -362,11 +383,9 @@ public class Projectv4 {
 									+ distinctvjHigherThanCijArray[index] 
 									+ " at " 
 									+ costPaidByCustomer[distinctvjHigherThanCijArray[index]]);
-
 						}
 
-						
-						//freeze wij				
+						// Freeze Wij				
 						if (arrayFrozenWij[i][distinctvjHigherThanCijArray[index]] == 1) {
 							System.out.println("w" + i + distinctvjHigherThanCijArray[index] + " is already frozen");
 						}
@@ -382,10 +401,12 @@ public class Projectv4 {
 				
 			}
 			
-			// are all customers connected? 
-			// for all j values connectedFacility should
+			// Are all customers connected? 
+			// For all j values connectedFacility should
 			// be connected at least once
+			
 			keepConnectedClients();
+			
 			if (checkIfAllClientsConnected(distinctArray) == true) {
 				System.out.println("equal!");
 				System.out.println("All clients are connected");
@@ -395,6 +416,8 @@ public class Projectv4 {
 			}
 			System.out.println("connections at time " + startTime);
 			getAllConnections();
+			
+			//
 			startTime++;
 			
 		} while(test);
@@ -409,40 +432,99 @@ public class Projectv4 {
 		
 		openFacilitiesFromTentativeSet();
 		
+		getTentativelyOpenFacilities();
+		
 		getOpenFacilities();
 
+		assignmentOfConnections();
+		
 	}
 	
 	
+	// For a client j, if there exists a facility i in openFacilities (maximal independent set I)  such that
+	// Facility i was the connecting witness of j
+	// Assign client j to facility i and declare client j DIRECTLY CONNECTED
+	// Otherwise, if facility i is not in openFacilities be the connecting witness of j 
+	//
+	public static void assignmentOfConnections() {
+		
+		List<Integer> indirectlyConnectedClients = new ArrayList<Integer>();
+		List<Integer> directlyConnectedClients = new ArrayList<Integer>();
+		
+		List<Integer> integerListOpenFacilities = new ArrayList<Integer>(); 
+		
+		System.out.println("assignment of connections: ");
+		for (int n = 0 ; n < openFacilities.size(); n++) {
+			integerListOpenFacilities.add(Integer.parseInt((openFacilities.get(n).substring(1))));
+		}
+		
+		// Find the disjunction between  tentatively open facilities and open facilities 
+		List<Integer> listDisjunction = new ArrayList(listTentativeFacilityNo);
+		listDisjunction.removeAll(integerListOpenFacilities);
+
+		/*
+		for (int n = 0 ; n < listDisjunction.size(); n++) {
+			System.out.println("disjunction: ");
+			System.out.println(listDisjunction.get(n));
+			
+		}
+		*/
+		
+		
+		// For each customer j that is connected to a facility not element of maximal stable set,
+		// Connect j to an open neighbor of i in the graph (V,E)
+		// Declare client j indirectly connected
+		//
+		for (int i = 0 ; i < listDisjunction.size(); i++) {
+			for (int k = 0 ; k < integerListOpenFacilities.size(); k++) {
+				
+				for (int j  = 0 ; j < listClients.size() ; j++) {
+					
+					if (connectedFacilityClient[listDisjunction.get(i)][j] == 1 
+							&& connectedFacilityClient[integerListOpenFacilities.get(k)][j] == 0) {
+								
+								connectedFacilityClient[listDisjunction.get(i)][j] = 0;
+								connectedFacilityClient[integerListOpenFacilities.get(k)][j] = 1;
+								indirectlyConnectedClients.add(j);
+					}
+					else {
+						directlyConnectedClients.add(j);
+					}
+										
+				}
+			}	
+		}
+		
+		System.out.println("indirectly connected clients: ");
+		System.out.println(indirectlyConnectedClients);
+		
+		System.out.println("directly connected clients: ");
+		System.out.println(directlyConnectedClients);
+		
+	}
+	
 	// Pick a maximal independent set I of facilities from the graph by choosing facilities
-	// in the order in which they were tentatively opened if they are not conflicting with a facility
+	// in the order in which they were tentatively opened if they are not conflicting with a facility...
 	// already chosen, and declare the set I of facilities open
 	public static void openFacilitiesFromTentativeSet() {
 		
 		//int yieldsWijCondition  = 1;
 		Set<Integer> setTentative = new HashSet<Integer>();
-		List<Integer> listFacilityNo = new ArrayList<Integer>();
-		int[] arrayFacilityNo = new int[tentativelyOpenFacilities.size()];
+		//List<Integer> listFacilityNo = new ArrayList<Integer>();
+		//int[] arrayFacilityNo = new int[tentativelyOpenFacilities.size()];
 		
 		
-		// initialize arrayFacilityNo with the index of tentatively open facilities
-		for(int t = 0; t < tentativelyOpenFacilities.size(); t++) {
-			
-			arrayFacilityNo[t] = Integer.parseInt(tentativelyOpenFacilities.get(t).substring(1));
-			listFacilityNo.add(arrayFacilityNo[t]);
-		}
-		
-		setTentative.addAll(listFacilityNo);
+		setTentative.addAll(listTentativeFacilityNo);
 		System.out.println("tentatively open facilities from setTentative: " + setTentative);
-		System.out.println("size of setTentative: "+ setTentative.size());
+		System.out.println("size of setTentative: " + setTentative.size());
 		int[] arrayUnique = new int[setTentative.size()];
 		Iterator<Integer> itTentative = setTentative.iterator();
 		int t=0;
 		
-		//turn the set of tentatively open facilty ids to an array of int
+		//turn the set of tentatively open facility ids to an array of int
 		while(itTentative.hasNext()){
 			arrayUnique[t] = itTentative.next();
-			System.out.println("tentatively open facilities list : f"+arrayUnique[t]);
+			System.out.println("unique tentatively open facilities list : f" + arrayUnique[t]);
 			t++;
 		}
 		
@@ -453,20 +535,7 @@ public class Projectv4 {
 		// conflictingPairs assignment done
 		// calculate which element of the conflicting pairs should be opened
 		// store them in openFacilities
-		
-		
-		// Lıst<paır> lıstOfPaır = new Lıst..
-			// todo
-		// lıstOfPaır now contaıns conflıctıng facılıtz paır
-		// Szstem.out.prınt(lıstOfPaır)
-			
-		// Calculate maxımum set I from the lıst of paır
-		// Set<facılıtz> lıstOfOpenedFacılıty = new Set
-		// ... calculatıon
-			
-		// now lıstOfOpenedFacılıtz contaıns the fınal opened facılıty
-		// Szstemçout.prınt()	
-		
+	
 		System.out.println("unique array length: " + arrayUnique.length);
 	    List<Integer> listE = new ArrayList<Integer>(); 
 	    
@@ -477,7 +546,7 @@ public class Projectv4 {
 	    	openFacilities.add("f"+arrayUnique[0]);
 	    }
 	    
-	    //if there is only one facility that is tentatively open, find all pairs
+	    //if there is more than one facility that is tentatively open, find all pairs
 	    //store them in listE
 	    else if (arrayUnique.length > 1) {
 	        for(int j = 0; j < arrayUnique.length; j++) {
@@ -492,6 +561,7 @@ public class Projectv4 {
 	        // created a 2d array for conflicting pairs
 	        int [][] conflictingPairs = new int[listE.size()][2];
 	        
+
 	        
 	        // going through all pairs in listE to see if they conflict
 	        for (int i = 0; i < listE.size(); i=i+2) {
@@ -507,8 +577,9 @@ public class Projectv4 {
 	        	//all combinations of pairs from tentatively open facilities 
 	        	System.out.println("new pair E: " + pairE);
 	        	
-	        	//sample value to check if pairs conflict
-	        	int wijConditions = 1;
+	        	
+		        //sample value to check if pairs conflict
+		        int wijConditions = 1;
 	        	
 	        	for (int j = 0; j < listClients.size(); j++) {		
 	        		if (wij[pairE.get(0)][j] > 0 && wij[pairE.get(1)][j] > 0) {
@@ -545,27 +616,26 @@ public class Projectv4 {
 	        		System.out.println("f" + conflictingPairs[e][0]);
 	        		System.out.println("f" + conflictingPairs[e][1]);
 	        		
-	        		//getting their indexes to find the order in which they were temporarily opened
-	        		// ?? what if a facility is temporarily opened twice?? 
-	        		int retval = tentativelyOpenFacilities.indexOf("f" + conflictingPairs[e][0]);
-	        		int retval2 = tentativelyOpenFacilities.indexOf("f" + conflictingPairs[e][1]);
-	        		//System.out.println("index: " + retval);
-	        		//System.out.println("index: " + retval2);
+	        		// Getting indexes of a conflicting pair to find the order in which they were temporarily opened
+	        		int retval = listTentativeFacilityNo.indexOf(conflictingPairs[e][0]);
+	        		int retval2 = listTentativeFacilityNo.indexOf(conflictingPairs[e][1]);
+	    
 	        		
-	        		// creating variables to check if facilities are already chosen or not
+	        		// Creating variables to check if facilities are already chosen or not
 	        		int alreadyChosen = 1; //for when openFacilities is empty
+	        		System.out.println("size of openFacilities: " + openFacilities.size());
         			int[] alreadyOpen = new int[openFacilities.size()];		
         			for(int i = 0 ; i < openFacilities.size(); i++) {
         				alreadyOpen[i] = 1;
         			}
         			
         			//fixing this value before doing additions to openFacilities, because it changes while going through the pairs
-        			//the size of open fac should change only when going through a pair is finished
+        			//the size of open facilities should change only when going through a pair is finished
         			int sizeOfOpenFacilities = openFacilities.size();
         			
-	        		//open facilities in the order facilities are tentatively opened
+	        		//opening facilities in the order facilities are tentatively opened
         			
-        			//the case where the 1st element of the pair was tentatively opened before the 2nd was
+        			//the case where the 1st element of the pair is tentatively opened before the 2nd is
 	        		if (retval < retval2) {	
 	        			System.out.println("size of open facilities: " + openFacilities.size());
 	        			System.out.println("pair e : " + conflictingPairs[e][0] +","+conflictingPairs[e][1]);
@@ -575,59 +645,125 @@ public class Projectv4 {
     						System.out.println("alreadyChosen value: " + alreadyChosen);	
 	        			}
 	        			else if (sizeOfOpenFacilities > 0) {
-	        			//check if it's already in open facilities
-	        			  for (int o = 0 ; o < openFacilities.size(); o++) {
-	        				String noOfFacility = openFacilities.get(o).substring(1);
-	        				if (noOfFacility.equals(Integer.toString(conflictingPairs[e][0]))) {
-	        					System.out.println("this facility is already open : f" + conflictingPairs[e][0]);
-	        					System.out.println("check if the 2nd element of the pair is in openFacilities too");
-	        					if(noOfFacility.equals(Integer.toString(conflictingPairs[e][1]))) {
-	        						System.out.println("this facility is already open: " + conflictingPairs[e][1]);
-	        						alreadyOpen[o] = alreadyOpen[o]*0;
-	        						System.out.println("alreadyChosen value: " + alreadyOpen[o]);
-	        					}
-	        					else if (!noOfFacility.equals(Integer.toString(conflictingPairs[e][1]))) {
-	        						System.out.println("not already open: f" + conflictingPairs[e][1]);
-	        						alreadyOpen[o] = alreadyOpen[o]*2;
-	        						System.out.println("alreadyChosen value: " + alreadyOpen[o]);	
-	        					}
+	        				//check if it's conflicting with a facility already chosen
+	        				
+	        				
+	        				//check if it's already in open facilities
+	        				for (int o = 0 ; o < openFacilities.size(); o++) {
+	        					String noOfFacility = openFacilities.get(o).substring(1);
+	        					int facilityInt = Integer.parseInt(noOfFacility);
+	        					if (facilityInt == conflictingPairs[e][0]) {
+	        						System.out.println("this facility is already open : f" + conflictingPairs[e][0]);
+	        						// this means that the next element of the pair will be conflicting with a facility already chosen
+	        						// so cannot open the next element of this pair either
+	        						System.out.println("so cannot open the next element: f" + conflictingPairs[e][1]);
+	        						System.out.println("---skip this pair");
+	        						alreadyChosen = alreadyChosen*0;
 	 						
-	        				}
-	        				else if (!noOfFacility.equals(Integer.toString(conflictingPairs[e][0]))) {
-	        					
-	        					if(!noOfFacility.equals(Integer.toString(conflictingPairs[e][1]))) {
+	        					}	
+	        					else if (facilityInt != conflictingPairs[e][0]) {
+	        						// if it's not in open facilities, 
+	        						System.out.println("not already open: f" + conflictingPairs[e][0]);
+	        						
+	        						//checking all pairs to see if element is conflicting with an already chosen facility
+	        						for (int mm = 0; mm < listE.size(); mm = mm + 2) {
+	        							if ((conflictingPairs[mm][1] == conflictingPairs[e][0]) && (mm != e)) {
+	        								
+	        								if (facilityInt == conflictingPairs[mm][0]) {
+	        										
+	        									System.out.println("conflicting with an already chosen facility " + conflictingPairs[mm][0]);
+	        									System.out.println("---skipping element " + conflictingPairs[e][0]);
+	        									alreadyChosen = alreadyChosen*0;
+	        									
+	        								}
+	        							}
+	        							
+	        							else if ((conflictingPairs[mm][0] == conflictingPairs[e][0]) && (mm !=e)) {
+	        								if (facilityInt == conflictingPairs[mm][1]) {
+	        									
+	        									System.out.println("conflicting with an already chosen facility " + conflictingPairs[mm][1]);
+	        									System.out.println("---skipping element " + conflictingPairs[e][0]);
+	        									alreadyChosen = alreadyChosen*0;
+	        									
+	        								}
+	        							}
+	        							else {
+	        								System.out.println(conflictingPairs[e][0] + "not conflicting with pair " +conflictingPairs[mm][0]+","+conflictingPairs[mm][1]);
+	        								alreadyChosen = alreadyChosen*1; 
+	        							}	
+	        						}
+	        					}
+	        						
+	        					else if (facilityInt == conflictingPairs[e][1]) {
+	        						System.out.println("facility already open");
+	        						System.out.println("---skipping element " + conflictingPairs[e][1] );
+	        						alreadyChosen = alreadyChosen*0;
+	        					}
+	        					else if (facilityInt != conflictingPairs[e][1]) {
+	        							
 	        						System.out.println("not already open: f" + conflictingPairs[e][1]);
-		        					System.out.println("open facility at " + conflictingPairs[e][0]);
-		        					alreadyOpen[o] = alreadyOpen[o]*1;
-		        					System.out.println("alreadyChosen value: " + alreadyOpen[o]);
-	        					}
-	        					else if (noOfFacility.equals(Integer.toString(conflictingPairs[e][1]))) {
-	        						System.out.println("this facility is already open: " + conflictingPairs[e][1]);
-	        						alreadyOpen[o] = alreadyOpen[o]*0;
+	        						for (int mm = 0; mm < listE.size(); mm = mm + 2) {
+	        							if ((conflictingPairs[mm][1] == conflictingPairs[e][1]) && (mm != e)) {
+	        								
+	        								if (facilityInt == conflictingPairs[mm][0]) {
+	        										
+	        									System.out.println("conflicting with an already chosen facility " + conflictingPairs[mm][0]);
+	        									System.out.println("---skipping element " + conflictingPairs[e][1]);
+	        									alreadyChosen = alreadyChosen*0;
+	        									
+	        								}
+	        							}
+	        							
+	        							else if ((conflictingPairs[mm][0] == conflictingPairs[e][1]) && (mm !=e)) {
+	        								if (facilityInt == conflictingPairs[mm][1]) {
+	        									
+	        									System.out.println("conflicting with an already chosen facility " + conflictingPairs[mm][1]);
+	        									System.out.println("---skipping element " + conflictingPairs[e][1]);
+	        									alreadyChosen = alreadyChosen*0;
+	        									
+	        								}
+	        							}
+	        							else {
+	        								System.out.println("not conflicting with an already chosen facility");
+	        								alreadyChosen = alreadyChosen*2;
+	        							}
+	        						}
+	        						alreadyOpen[o] = alreadyOpen[o]*1;
 	        						System.out.println("alreadyChosen value: " + alreadyOpen[o]);
+	        						System.out.println("alr chosen value: " + alreadyChosen);
 	        					}
+	        						
 	        					
-	        				}
-	        				else System.out.println("ok");
-	        			  }
-      			 
+	        					
+	        					else System.out.println("smth wrong between elements of conflicting pair and open facilities");
+	        			 	}
 	        			}
 	        			
 	        			System.out.println("size of open facilities --" + sizeOfOpenFacilities);
 	        			if(sizeOfOpenFacilities != 0) {
 	        				
 	        				for (int i=0; i < sizeOfOpenFacilities; i++) {
-	        					if (alreadyOpen[i] == 0) {
-	        						System.out.println("already in open facilities");
+	        					if (alreadyChosen == 0) {
+	        						System.out.println("not opening a new facility");
 	        					}
-	        					else if (alreadyOpen[i] == 1) {	
-	        						openFacilities.add("f" + conflictingPairs[e][0]);
-	        						System.out.println("1st element of the pair added to open facilities: " + "f" + conflictingPairs[e][0]);
+	        					else if (alreadyChosen == 1) {	
+	        						if (openFacilities.contains("f" + conflictingPairs[e][0])) {
+	        							System.out.println("facility already opened");
+	        						}
+	        						else {
+	        							openFacilities.add("f" + conflictingPairs[e][0]);
+	        							System.out.println("1st element of the pair added to open facilities: " + "f" + conflictingPairs[e][0]);
+	        						}
 	        					}
 		        			
 	        					else if (alreadyOpen[i] == 2) {
-	        						openFacilities.add("f" + conflictingPairs[e][1]);
-	        						System.out.println("2nd element of the pair added to open facilities: " + "f" + conflictingPairs[e][1]);
+	        						if (openFacilities.contains("f" + conflictingPairs[e][0])) {
+	        							System.out.println("facility already opened");
+	        						}
+	        						else {
+	        							openFacilities.add("f" + conflictingPairs[e][0]);
+	        							System.out.println("2nd element of the pair added to open facilities: " + "f" + conflictingPairs[e][0]);
+	        						}
 	        					}
 	        				}
 	        			}
@@ -642,64 +778,149 @@ public class Projectv4 {
 	        			
 	        		else if (retval > retval2) {
 	        			
-	        			if (openFacilities.size() == 0) {
-    						System.out.println("pair e : " + conflictingPairs[e][0] +","+conflictingPairs[e][1]);
+	        			System.out.println("size of open facilities: " + openFacilities.size());
+	        			System.out.println("pair e : " + conflictingPairs[e][0] +","+conflictingPairs[e][1]);
+	        			if (sizeOfOpenFacilities == 0) {
+	        				System.out.println("no open facilities yet");
     						alreadyChosen = alreadyChosen*1;
-    						System.out.println("already chosen value: " + alreadyOpen);	
+    						System.out.println("alreadyChosen value: " + alreadyChosen);	
 	        			}
-	        			else if (openFacilities.size() > 0) {
-	        			//check if it's already in open facilities
-	        			  for (int o = 0 ; o < openFacilities.size(); o++) {
-	        				String noOfFacility = openFacilities.get(o).substring(1);
-	        				if (!noOfFacility.equals(Integer.toString(conflictingPairs[e][1]))) {
-	        						System.out.println("not already open");
-	        						System.out.println(noOfFacility);
-	        						System.out.println("pair e : " + conflictingPairs[e][0] +","+conflictingPairs[e][1]);
-	        						alreadyOpen[o] = alreadyOpen[o]*2;
-	        						System.out.println("already chosen value: " + alreadyOpen);
-	        				}
-	        				else if (noOfFacility.equals(Integer.toString(conflictingPairs[e][1]))) {
-	        					System.out.println("already open facility : " + openFacilities.get(o));
-	        					if(noOfFacility.equals(Integer.toString(conflictingPairs[e][0]))) {
-	        						alreadyOpen[o] = alreadyOpen[o]*0;
-	        						System.out.println("already chosen value: " + alreadyOpen[o]);
+	        			else if (sizeOfOpenFacilities > 0) {
+	        				//check if it's conflicting with a facility already chosen
+	        				
+	        				
+	        				//check if it's already in open facilities
+	        				for (int o = 0 ; o < openFacilities.size(); o++) {
+	        					String noOfFacility = openFacilities.get(o).substring(1);
+	        					int facilityInt = Integer.parseInt(noOfFacility);
+	        					if (facilityInt == conflictingPairs[e][0]) {
+	        						System.out.println("this facility is already open : f" + conflictingPairs[e][0]);
+	        						// this means that the next element of the pair will be conflicting with a facility already chosen
+	        						// so cannot open the next element of this pair either
+	        						System.out.println("so cannot open the next element: f" + conflictingPairs[e][1]);
+	        						System.out.println("---skip this pair");
+	        						alreadyChosen = alreadyChosen*0;
+	 						
+	        					}	
+	        					else if (facilityInt != conflictingPairs[e][0]) {
+	        						// if it's not in open facilities, 
+	        						System.out.println("not already open: f" + conflictingPairs[e][0]);
+	        						
+	        						//checking all pairs to see if element is conflicting with an already chosen facility
+	        						for (int mm = 0; mm < listE.size(); mm = mm + 2) {
+	        							if ((conflictingPairs[mm][1] == conflictingPairs[e][0]) && (mm != e)) {
+	        								
+	        								if (facilityInt == conflictingPairs[mm][0]) {
+	        										
+	        									System.out.println("conflicting with an already chosen facility " + conflictingPairs[mm][0]);
+	        									System.out.println("---skipping element " + conflictingPairs[e][0]);
+	        									alreadyChosen = alreadyChosen*0;
+	        									
+	        								}
+	        							}
+	        							
+	        							else if ((conflictingPairs[mm][0] == conflictingPairs[e][0]) && (mm !=e)) {
+	        								if (facilityInt == conflictingPairs[mm][1]) {
+	        									
+	        									System.out.println("conflicting with an already chosen facility " + conflictingPairs[mm][1]);
+	        									System.out.println("---skipping element " + conflictingPairs[e][0]);
+	        									alreadyChosen = alreadyChosen*0;
+	        									
+	        								}
+	        							}
+	        							else {
+	        								System.out.println(conflictingPairs[e][0] + "not conflicting with pair " +conflictingPairs[mm][0]+","+conflictingPairs[mm][1]);
+	        								alreadyChosen = alreadyChosen*1; 
+	        							}	
+	        						}
 	        					}
-	        					else if (!noOfFacility.equals(Integer.toString(conflictingPairs[e][0]))) {
+	        						
+	        					else if (facilityInt == conflictingPairs[e][1]) {
+	        						System.out.println("facility already open");
+	        						System.out.println("---skipping element " + conflictingPairs[e][1] );
+	        						alreadyChosen = alreadyChosen*0;
+	        					}
+	        					else if (facilityInt != conflictingPairs[e][1]) {
+	        							
+	        						System.out.println("not already open: f" + conflictingPairs[e][1]);
+	        						for (int mm = 0; mm < listE.size(); mm = mm + 2) {
+	        							if ((conflictingPairs[mm][1] == conflictingPairs[e][1]) && (mm != e)) {
+	        								
+	        								if (facilityInt == conflictingPairs[mm][0]) {
+	        										
+	        									System.out.println("conflicting with an already chosen facility " + conflictingPairs[mm][0]);
+	        									System.out.println("---skipping element " + conflictingPairs[e][1]);
+	        									alreadyChosen = alreadyChosen*0;
+	        									
+	        								}
+	        							}
+	        							
+	        							else if ((conflictingPairs[mm][0] == conflictingPairs[e][1]) && (mm !=e)) {
+	        								if (facilityInt == conflictingPairs[mm][1]) {
+	        									
+	        									System.out.println("conflicting with an already chosen facility " + conflictingPairs[mm][1]);
+	        									System.out.println("---skipping element " + conflictingPairs[e][1]);
+	        									alreadyChosen = alreadyChosen*0;
+	        									
+	        								}
+	        							}
+	        							else {
+	        								System.out.println("not conflicting with an already chosen facility");
+	        								alreadyChosen = alreadyChosen*2;
+	        							}
+	        						}
 	        						alreadyOpen[o] = alreadyOpen[o]*1;
-	        						System.out.println("already chosen value: " + alreadyOpen[o]);
+	        						System.out.println("alreadyChosen value: " + alreadyOpen[o]);
+	        						System.out.println("alr chosen value: " + alreadyChosen);
 	        					}
-	        				}
-	        				else System.out.println("ok");
-	        			  }
+	        						
+	        					
+	        					
+	        					else System.out.println("smth wrong between elements of conflicting pair and open facilities");
+	        			 	}
 	        			}
 	        			
-	        			if (alreadyChosen == 1) {
-	        				openFacilities.add("f" + conflictingPairs[e][1]);
-	        				System.out.println("1st element of the pair added to open facilities, no facility was open before: " 
-	        										+ "f" + conflictingPairs[e][1]);
-	        			}
-	        			
-	        			if(openFacilities.size() != 0) {
-	        				for (int i=0; i < openFacilities.size(); i++) {
-	        					if (alreadyOpen[i] == 0) {
-	        						System.out.println("already in open facilities");
+	        			System.out.println("size of open facilities --" + sizeOfOpenFacilities);
+	        			if(sizeOfOpenFacilities != 0) {
+	        				
+	        				for (int i=0; i < sizeOfOpenFacilities; i++) {
+	        					if (alreadyChosen == 0) {
+	        						System.out.println("not opening a new facility");
 	        					}
-	        					else if (alreadyOpen[i] == 1) {	
-	        						openFacilities.add("f" + conflictingPairs[e][0]);
-	        						System.out.println("1st element of the pair added to open facilities: " + "f" + conflictingPairs[e][0]);
+	        					else if (alreadyChosen == 1) {	
+	        						if (openFacilities.contains("f" + conflictingPairs[e][0])) {
+	        							System.out.println("facility already opened");
+	        						}
+	        						else {
+	        							openFacilities.add("f" + conflictingPairs[e][0]);
+	        							System.out.println("1st element of the pair added to open facilities: " + "f" + conflictingPairs[e][0]);
+	        						}
 	        					}
 		        			
 	        					else if (alreadyOpen[i] == 2) {
-	        						openFacilities.add("f" + conflictingPairs[e][1]);
-	        						System.out.println("2nd element of the pair added to open facilities: " + "f" + conflictingPairs[e][1]);
+	        						if (openFacilities.contains("f" + conflictingPairs[e][0])) {
+	        							System.out.println("facility already opened");
+	        						}
+	        						else {
+	        							openFacilities.add("f" + conflictingPairs[e][0]);
+	        							System.out.println("2nd element of the pair added to open facilities: " + "f" + conflictingPairs[e][0]);
+	        						}
 	        					}
+	        				}
+	        			}
+	        			else if (sizeOfOpenFacilities == 0) {
+	        				if (alreadyChosen == 1) {
+	        					openFacilities.add("f" + conflictingPairs[e][0]);
+	        					System.out.println("1st element of the pair added to open facilities, no facility was open before: " 
+	        										+ "f" + conflictingPairs[e][0]);
 	        				}
 	        			}
 	        		}	
 	        		
 	        		else System.out.println("smth wrong about index of pairs");
+	        		
 	        		System.out.println("additions to openFacilities is over for the pair at " + e +": " + conflictingPairs[e][0] + "," + conflictingPairs[e][1]);
-	        		System.out.println("openFacilities at step " + e + " : "+openFacilities);
+	        		System.out.println("openFacilities at step " + e + " : " + openFacilities);
 	        	}
 	       }
 	}	
@@ -711,7 +932,8 @@ public class Projectv4 {
 		String matrixWijArray = Arrays.deepToString(wij).replace("], ", "]\n").replace("[[", "[").replace("]]", "]");
 		System.out.println(matrixWijArray.replace(",", " "));
 	}
-	
+ 	
+
 	public static void increaseWijIfNotFrozen(int x, int y) {
 
 		if (arrayFrozenWij[x][y] == 1 ) {
@@ -742,7 +964,6 @@ public class Projectv4 {
 				if (connectedFacilityClient[i][j] == clientConnected)
 				{
 					//System.out.println("connected at " + i + "-" + j + "");
-					//columns[j] = j;
 			
 					listColumns.add(j);						
 				} 
@@ -766,6 +987,8 @@ public class Projectv4 {
 		*/
 	}
 	
+	
+	// didnt call this method 
 	public static void conditionVjHigherThanCij() {
 		
 		for (int i = 0 ; i < listFacilities.size() ; i++) {
@@ -784,15 +1007,19 @@ public class Projectv4 {
 	
 	public static void increaseVjIfNotFrozen() {
 		
+		// going through all clients to check if they are frozen
 		for (int j = 0 ; j < listClients.size() ; j++) {
 			
+			// integer list listFrozenVj stores the client no if they were frozen
 			if(listFrozenVj.contains(j)) {
-				System.out.println("frozen v" + j + ":" + costPaidByCustomer[j]) ;
+				System.out.println("already frozen v" + j + ":" + costPaidByCustomer[j]) ;
 			}
+			
+			// if vj is not frozen, then increase its value with time
 			else {
-				//if vj is not frozen, then increase its value
+				
 				costPaidByCustomer[j] = startTime;
-				System.out.println("increase by time v" + j + ":" + costPaidByCustomer[j]);
+				System.out.println("v" + j + ":" + costPaidByCustomer[j] + " is increased with time");
 			}	
 		}
 	}
@@ -807,28 +1034,18 @@ public class Projectv4 {
 	public static void getTentativelyOpenFacilities() {
 		
 		//let V be the set of tentatively open facilities
-		System.out.println("list of tentatively open facilities");
-		for(int n = 0; n < tentativelyOpenFacilities.size(); n++) {
-			
-			System.out.println(tentativelyOpenFacilities.get(n));
-			
-		}
+		System.out.println("list of tentatively open facilities");		
+		System.out.println(listTentativeFacilityNo);
 	}
+	
 	public static void getOpenFacilities() {
 		System.out.println("list of open facilities::");
-		for (int n = 0 ; n < openFacilities.size(); n++) {
-			
-			System.out.println(openFacilities.get(n));
-			
-		}
+		System.out.println(openFacilities);
 	}
 	
-	
-	
-	
-	
-	
+
 	//prompt the user to enter input
+	// THIS METHOD NOT COMPLETED 
 	public static void enterInput(){
 		
 		System.out.println("How many clients?");
@@ -868,7 +1085,7 @@ public class Projectv4 {
 		 answerScan= scan.nextLine();
 		 
 		 System.out.println("You entered: " + answerScan); 
-		 deployServer();
+		 deployAlgorithm();
 	 
 	 }
 }
